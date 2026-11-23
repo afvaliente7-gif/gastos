@@ -204,6 +204,19 @@ h3 a{font-size:14px;color:var(--gold);font-weight:800;text-decoration:none}
   </div>
 </div>
 
+<!-- HOJA: DETALLE CATEGORÍA -->
+<div class="sheet" id="shCat" onclick="if(event.target===this)cerrar('shCat')">
+  <div class="panel">
+    <div class="ph"><b id="catTit"></b><button class="x-btn" onclick="cerrar('shCat')">✕</button></div>
+    <div class="lbl" id="catSub"></div>
+    <div class="big" id="catTot" style="margin:4px 0 12px"></div>
+    <div class="k" style="margin-top:0">Detalle</div>
+    <div id="catDet"></div>
+    <div class="k">Movimientos</div>
+    <div id="catList"></div>
+  </div>
+</div>
+
 <!-- HOJA: PAGAR CUOTA -->
 <div class="sheet" id="shCuota" onclick="if(event.target===this)cerrar('shCuota')">
   <div class="panel">
@@ -362,7 +375,7 @@ function pintar(){
   $('porQuien').innerHTML=Q.map(function(x){return '<button class="tile" onclick="verQuien(\''+esc(x[0])+'\')"><div class="n">'+esc(x[0])+'</div><div class="v">'+plata(x[1])+'</div><div class="bar"><i style="width:'+Math.max(4,x[1]/maxQ*100)+'%"></i></div></button>'}).join('');
   // por categoría
   var C=agrupar(delPer,'categoria');
-  $('porCat').innerHTML=C.map(function(x){var ic=ICON[x[0]]||ICON.Otros;var pct=tot?Math.round(x[1]/tot*100):0;return '<div class="cat"><div class="ic" style="background:'+ic[1]+'">'+ic[0]+'</div><div class="x"><div class="t">'+esc(x[0])+'</div><div class="bar"><i style="width:'+Math.max(3,pct)+'%"></i></div></div><div class="m">'+plata(x[1])+'<div class="lbl" style="font-size:12px">'+pct+'%</div></div></div>'}).join('');
+  $('porCat').innerHTML=C.map(function(x){var ic=ICON[x[0]]||ICON.Otros;var pct=tot?Math.round(x[1]/tot*100):0;return '<div class="cat" onclick="verCat(\''+esc(x[0])+'\')"><div class="ic" style="background:'+ic[1]+'">'+ic[0]+'</div><div class="x"><div class="t">'+esc(x[0])+' <span style="color:var(--gold);font-size:14px">›</span></div><div class="bar"><i style="width:'+Math.max(3,pct)+'%"></i></div></div><div class="m">'+plata(x[1])+'<div class="lbl" style="font-size:12px">'+pct+'%</div></div></div>'}).join('');
   // cuotas próximas
   var pc=D.cuotas.filter(function(c){return c.estado!=='Pagada'}).sort(function(a,b){return a.vence<b.vence?-1:1});
   var prox={};pc.forEach(function(c){if(!prox[c.plan])prox[c.plan]=c});
@@ -407,6 +420,17 @@ function pintarHistorial(){
   $('lista').innerHTML=html||'<div class="empty">No hay gastos con ese filtro</div>';
 }
 function verLugar(l){fLugar=l;ir('Historial')}
+function nombreBase(t){return String(t||'').replace(/\s*\((apple|google|play store|app store)\)\s*$/i,'').replace(/\s+[–-]\s+.*$/,'').trim()||'Sin nombre'}
+function verCat(c){
+  var G=D.gastos.filter(filtroAmb).filter(enPer).filter(function(g){return g.categoria===c});
+  var tot=sum(G),ic=ICON[c]||ICON.Otros;
+  $('catTit').textContent=ic[0]+' '+c;$('catSub').textContent=nombrePer()+' · '+G.length+' gasto'+(G.length===1?'':'s');$('catTot').textContent=plata(tot);
+  var o={},n={};G.forEach(function(g){var k=nombreBase(g.concepto);o[k]=(o[k]||0)+Number(g.monto);n[k]=(n[k]||0)+1});
+  var arr=Object.keys(o).map(function(k){return[k,o[k],n[k]]}).sort(function(a,b){return b[1]-a[1]});var mx=arr.length?arr[0][1]:1;
+  $('catDet').innerHTML=arr.map(function(x){return '<div class="cat"><div class="x"><div class="t">'+esc(x[0])+'</div><div class="s">'+x[2]+(x[2]===1?' vez':' veces')+' · '+(tot?Math.round(x[1]/tot*100):0)+'%</div><div class="bar"><i style="width:'+Math.max(3,x[1]/mx*100)+'%"></i></div></div><div class="m">'+plata(x[1])+'</div></div>'}).join('')||'<div class="empty">Sin gastos</div>';
+  $('catList').innerHTML=G.slice().sort(ordenFecha).map(function(g){return filaGasto(g).replace('onclick="abrirGasto(','onclick="cerrar(\'shCat\');abrirGasto(')}).join('');
+  $('shCat').classList.add('on');
+}
 
 function pintarCuotas(){
   var planes={};D.cuotas.forEach(function(c){(planes[c.plan]=planes[c.plan]||[]).push(c)});
