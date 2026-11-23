@@ -182,8 +182,8 @@ h3 a{font-size:14px;color:var(--gold);font-weight:800;text-decoration:none}
 <div class="sheet" id="shGasto" onclick="if(event.target===this)cerrar('shGasto')">
   <div class="panel">
     <div class="ph"><b id="gTit">Nuevo gasto</b><button class="x-btn" onclick="cerrar('shGasto')">✕</button></div>
-    <button class="foto" id="gFotoBtn" onclick="$('gFotoIn').click()">📷 Cargar desde foto de boleta</button>
-    <input type="file" id="gFotoIn" accept="image/*" class="hidden">
+    <button class="foto" id="gFotoBtn" onclick="$('gFotoIn').click()">📷 Cargar desde foto o PDF</button>
+    <input type="file" id="gFotoIn" accept="image/*,application/pdf" class="hidden">
     <div class="lbl hidden" id="gFotoInfo" style="margin-bottom:8px"></div>
     <div class="monto"><span>$</span><input id="gMonto" inputmode="decimal" placeholder="0" autocomplete="off"></div>
     <input class="fld" id="gConcepto" placeholder="¿Qué fue? Ej: carne y verduras" autocomplete="off">
@@ -480,9 +480,10 @@ $('gFotoIn').addEventListener('change',function(){procesarFoto(this.files[0])});
 function procesarFoto(f){if(!f)return;
   var r=gs();if(!r||!navigator.onLine){$('gErr').textContent='Para leer la foto necesitás internet';return}
   $('gFotoBtn').textContent='⏳ Leyendo la boleta…';$('gFotoBtn').disabled=true;$('gErr').textContent='';
-  achicar(f,1600,0.8,function(b64){
-    llamar('leerComprobante',{base64:b64,mime:'image/jpeg'}).then(function(x){
-      $('gFotoBtn').textContent='📷 Cargar desde foto de boleta';$('gFotoBtn').disabled=false;
+  var leer=f.type==='application/pdf'?function(cb){var fr=new FileReader();fr.onload=function(){cb(String(fr.result).split(',')[1],'application/pdf')};fr.readAsDataURL(f)}:function(cb){achicar(f,1600,0.8,function(b){cb(b,'image/jpeg')})};
+  leer(function(b64,mime){
+    llamar('leerComprobante',{base64:b64,mime:mime}).then(function(x){
+      $('gFotoBtn').textContent='📷 Cargar desde foto o PDF';$('gFotoBtn').disabled=false;
       if(x.monto)$('gMonto').value=String(x.monto).replace('.',',');
       if(x.concepto)$('gConcepto').value=x.concepto+(x.comercio&&x.concepto.toLowerCase().indexOf(String(x.comercio).toLowerCase())<0?' – '+x.comercio:'');
       if(/^\d{4}-\d{2}-\d{2}$/.test(x.fecha||''))$('gFecha').value=x.fecha;
@@ -492,7 +493,7 @@ function procesarFoto(f){if(!f)return;
       fotoUrl=x.foto||'';sel.quien='';pintarForm();
       $('gFotoInfo').classList.remove('hidden');$('gFotoInfo').innerHTML='✓ Leído'+(x.confianza==='baja'?' <span style="color:var(--warn)">· revisá bien, la foto no se leía clara</span>':'')+' · 📎 <a href="'+esc(fotoUrl)+'" target="_blank" style="color:var(--gold)">ver</a><br><b style="color:var(--gold)">Elegí quién gastó y guardá</b>';
       marcarQuien();
-    }).catch(function(e){$('gFotoBtn').textContent='📷 Cargar desde foto de boleta';$('gFotoBtn').disabled=false;$('gErr').textContent='No pude leer la foto. Probá otra más clara o cargalo a mano.'})
+    }).catch(function(e){$('gFotoBtn').textContent='📷 Cargar desde foto o PDF';$('gFotoBtn').disabled=false;$('gErr').textContent='No pude leer la foto. Probá otra más clara o cargalo a mano.'})
   })}
 function revisarCompartido(){if(location.search.indexOf('compartido')<0||!window.caches)return;
   caches.open('compartido').then(function(c){return c.match('img-compartida').then(function(r){if(!r)return;c.delete('img-compartida');history.replaceState(null,'',location.pathname);
